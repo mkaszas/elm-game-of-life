@@ -42,6 +42,7 @@ type Msg
     = Generate
     | Start
     | Stop
+    | Reset
 
 
 viewDocument : Model -> Browser.Document Msg
@@ -74,6 +75,9 @@ initialGrid =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Reset ->
+            init ()
+
         Generate ->
             ( { model | grid = nextGeneration model.grid }, Cmd.none )
 
@@ -95,6 +99,7 @@ view { grid } =
         , Html.button [ onClick Start ] [ text "Start" ]
         , Html.button [ onClick Stop ] [ text "Stop" ]
         , Html.button [ onClick Generate ] [ text "Step" ]
+        , Html.button [ onClick Reset ] [ text "Reset" ]
         ]
 
 
