@@ -1,7 +1,8 @@
 module Main exposing (Model, Msg(..), init, main, update, viewDocument)
 
 import Browser
-import Html exposing (Html)
+import Html as Html
+import Html.Events exposing (onClick)
 import List.Extra as EList
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
@@ -26,13 +27,21 @@ type alias Grid =
     List Point
 
 
+type State
+    = Paused
+    | Running
+
+
 type alias Model =
     { grid : Grid
+    , state : State
     }
 
 
 type Msg
-    = Generate Time.Posix
+    = Generate
+    | Start
+    | Stop
 
 
 viewDocument : Model -> Browser.Document Msg
@@ -43,13 +52,18 @@ viewDocument model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Time.every 100 Generate
+subscriptions { state } =
+    case state of
+        Paused ->
+            Sub.none
+
+        Running ->
+            Time.every 100 <| always Generate
 
 
 init : x -> ( Model, Cmd Msg )
 init _ =
-    ( { grid = initialGrid }, Cmd.none )
+    ( { grid = initialGrid, state = Paused }, Cmd.none )
 
 
 initialGrid : Grid
@@ -58,19 +72,30 @@ initialGrid =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg { grid } =
+update msg model =
     case msg of
-        Generate _ ->
-            ( { grid = nextGeneration grid }, Cmd.none )
+        Generate ->
+            ( { model | grid = nextGeneration model.grid }, Cmd.none )
+
+        Start ->
+            ( { model | state = Running }, Cmd.none )
+
+        Stop ->
+            ( { model | state = Paused }, Cmd.none )
 
 
-view : Model -> Html Msg
+view : Model -> Html.Html Msg
 view { grid } =
-    svg
-        [ width "600"
-        , height "600"
+    Html.div []
+        [ svg
+            [ width "600"
+            , height "600"
+            ]
+            (List.map showPoint grid)
+        , Html.button [ onClick Start ] [ text "Start" ]
+        , Html.button [ onClick Stop ] [ text "Stop" ]
+        , Html.button [ onClick Generate ] [ text "Step" ]
         ]
-        (List.map showPoint grid)
 
 
 getSvgAttributes : Point -> List (Attribute msg)
