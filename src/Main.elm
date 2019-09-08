@@ -1,11 +1,12 @@
 module Main exposing (Model, Msg(..), init, main, update, viewDocument)
 
 import Browser
-import Html as Html
-import Html.Events exposing (onClick)
+import Html exposing (..)
+import Html.Attributes as Attr exposing (..)
+import Html.Events exposing (onClick, onInput)
 import List.Extra as EList
-import Svg exposing (..)
-import Svg.Attributes exposing (..)
+import Svg exposing (Attribute, Svg, rect, svg)
+import Svg.Attributes exposing (fill, height, width, x, y)
 import Time
 
 
@@ -35,6 +36,7 @@ type State
 type alias Model =
     { grid : Grid
     , state : State
+    , speed : Float
     }
 
 
@@ -43,6 +45,7 @@ type Msg
     | Start
     | Stop
     | Reset
+    | SetSpeed String
 
 
 viewDocument : Model -> Browser.Document Msg
@@ -53,18 +56,18 @@ viewDocument model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions { state } =
+subscriptions { state, speed } =
     case state of
         Paused ->
             Sub.none
 
         Running ->
-            Time.every 100 <| always Generate
+            Time.every speed <| always Generate
 
 
 init : x -> ( Model, Cmd Msg )
 init _ =
-    ( { grid = initialGrid, state = Paused }, Cmd.none )
+    ( { grid = initialGrid, state = Paused, speed = 100 }, Cmd.none )
 
 
 initialGrid : Grid
@@ -87,9 +90,12 @@ update msg model =
         Stop ->
             ( { model | state = Paused }, Cmd.none )
 
+        SetSpeed s ->
+            ( { model | speed = parseSpeed s }, Cmd.none )
+
 
 view : Model -> Html.Html Msg
-view { grid } =
+view { grid, speed } =
     Html.div []
         [ svg
             [ width "600"
@@ -100,7 +106,28 @@ view { grid } =
         , Html.button [ onClick Stop ] [ text "Stop" ]
         , Html.button [ onClick Generate ] [ text "Step" ]
         , Html.button [ onClick Reset ] [ text "Reset" ]
+        , Html.input
+            [ type_ "range"
+            , Attr.min "600"
+            , Attr.max "1000"
+            , Attr.step "50"
+            , Attr.value (showSpeed speed)
+            , onInput SetSpeed
+            ]
+            []
         ]
+
+
+showSpeed : Float -> String
+showSpeed s =
+    String.fromInt (1000 - round s)
+
+
+parseSpeed : String -> Float
+parseSpeed s =
+    String.toFloat s
+        |> Maybe.withDefault 900
+        |> (\x -> 1000 - x)
 
 
 getSvgAttributes : Point -> List (Attribute msg)
